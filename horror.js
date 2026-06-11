@@ -1,7 +1,7 @@
 // ==========================================
 // GAME CONFIGURATION
 // ==========================================
-const CURRENT_VERSION = "0.2.1.0";
+const CURRENT_VERSION = "0.2.1.2";
 const DOWNLOAD_URL = "https://github.com/TOBI0458/Horror-game"; // Change this to your download link
 const VERSION_CHECK_URL = "https://raw.githubusercontent.com/TOBI0458/Horror-game/main/version.json";
 
