@@ -14,13 +14,14 @@ from untis_client import parse_date
 WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
 DAY_KEYS = {"mo": 0, "di": 1, "mi": 2, "do": 3, "fr": 4, "sa": 5, "so": 6}
 
-DEFAULT_ORDER = ("teacher", "subject", "room")
+DEFAULT_ORDER = ("subject", "teacher", "room")
 
 
 @dataclass(frozen=True)
 class Cell:
     """Eine Stunde: die Textzeilen in der Reihenfolge, die Untis anzeigt."""
     lines: tuple
+    key: str = ""       # Fach - bestimmt die Farbe im Ausdruck
 
     @property
     def head(self):
@@ -59,7 +60,7 @@ class Grid:
 def make_cell(parts, order=DEFAULT_ORDER):
     """parts: dict mit teacher/subject/room; leere Werte fallen weg."""
     lines = tuple(parts[key].strip() for key in order if parts.get(key, "").strip())
-    return Cell(lines or ("—",))
+    return Cell(lines or ("—",), key=(parts.get("subject") or "").strip())
 
 
 def build_grid(slots, period_count, days):

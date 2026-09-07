@@ -26,7 +26,7 @@ python3 untis_export.py --file plan.json --format beides -o stundenplan
 Ein Eintrag sieht so aus:
 
 ```json
-{"day": "Mo", "periods": [1, 2], "teacher": "NEUS", "subject": "E1"}
+{"day": "Mo", "periods": [1, 2], "subject": "E1", "teacher": "NEUS"}
 ```
 
 `day` ist `Mo`–`Fr`, `periods` sind die Stundennummern (mehrere = zusammenhängender
@@ -70,20 +70,26 @@ python3 untis_export.py --format beides
 
 ## Darstellung
 
-Jede Zelle ist wie in der Untis-App beschriftet:
+Jede Zelle zeigt das Fach groß und darunter die Lehrkraft:
 
 ```
-NEUS      Lehrkraft, fett
-E1        Fach
+E1        Fach, groß und fett
+NEUS      Lehrkraft
 ```
 
-Kopfzeile mit den Wochentagen, linke Spalte mit Uhrzeit und Stundennummer.
-Zusammenhängende Stunden desselben Unterrichts werden zu einem durchgehenden
-Block verbunden, genau wie in der App. Leere Randstunden und unterrichtsfreie
-Tage fallen weg, damit der Ausdruck kompakt bleibt.
+* **Fachfarben** – jedes Fach bekommt eine eigene, dauerhaft gleiche Farbe:
+  heller Zellhintergrund plus kräftiger Streifen am linken Rand. So sind
+  gleiche Fächer über die Woche hinweg sofort zu erkennen.
+* **Blöcke** – zusammenhängende Stunden desselben Unterrichts werden zu einer
+  durchgehenden Zelle verbunden, wie in der Untis-App.
+* **Pausen** – vor einer Pause ab zehn Minuten liegt eine kräftigere Trennlinie.
+* Leere Randstunden und unterrichtsfreie Tage fallen weg, das Raster füllt
+  automatisch genau eine Seite.
 
 Die Zeilenreihenfolge in der Zelle steuert `order` in `plan.json`, standardmäßig
-`["teacher", "subject", "room"]`.
+`["subject", "teacher", "room"]`. Die Überschrift kommt aus `name`, also ergibt
+`"name": "Tobi"` die Überschrift **Stundenplan: Tobi**. Farben und Abstände
+stehen gesammelt in `theme.py`.
 
 ## Dateien
 
@@ -94,6 +100,7 @@ Die Zeilenreihenfolge in der Zelle steuert `order` in `plan.json`, standardmäß
 | `plan_file.py` | liest `plan.json` ein |
 | `untis_client.py` | JSON-RPC-Client für WebUntis |
 | `timetable.py` | rechnet die Untis-Stunden in das Wochenraster um |
+| `theme.py` | Farbpalette und Abstände für beide Ausgaben |
 | `render_pdf.py` | PDF-Ausgabe (ReportLab) |
 | `render_docx.py` | Word-Ausgabe (python-docx) |
 

@@ -95,7 +95,7 @@ def from_webuntis(args):
 
 def write(args, units, days, grid, name):
     units, days, grid, rows = tt.trim(units, days, grid)
-    title = f"Stundenplan – {name}" if name else "Stundenplan"
+    title = f"Stundenplan: {name}" if name else "Stundenplan"
     subtitle = f"Stand {dt.date.today():%d.%m.%Y}"
 
     written = []

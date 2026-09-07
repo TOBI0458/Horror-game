@@ -1,6 +1,6 @@
 {
-  "name": "PETROVTob",
-  "order": ["teacher", "subject", "room"],
+  "name": "Tobi",
+  "order": ["subject", "teacher", "room"],
   "periods": [
     {"name": "1",  "start": "08:00", "end": "08:50"},
     {"name": "2",  "start": "08:55", "end": "09:45"},
