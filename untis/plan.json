@@ -1,0 +1,43 @@
+{
+  "name": "PETROVTob",
+  "order": ["teacher", "subject", "room"],
+  "periods": [
+    {"name": "1",  "start": "08:00", "end": "08:50"},
+    {"name": "2",  "start": "08:55", "end": "09:45"},
+    {"name": "3",  "start": "10:00", "end": "10:50"},
+    {"name": "4",  "start": "10:55", "end": "11:45"},
+    {"name": "5",  "start": "11:50", "end": "12:40"},
+    {"name": "6",  "start": "12:50", "end": "13:40"},
+    {"name": "7",  "start": "13:45", "end": "14:35"},
+    {"name": "8",  "start": "14:40", "end": "15:30"},
+    {"name": "9",  "start": "15:35", "end": "16:25"},
+    {"name": "10", "start": "16:30", "end": "17:20"}
+  ],
+  "lessons": [
+    {"day": "Mo", "periods": [1, 2],       "teacher": "NEUS", "subject": "E1"},
+    {"day": "Mo", "periods": [3, 4],       "teacher": "FABS", "subject": "ETH"},
+    {"day": "Mo", "periods": [6, 7],       "teacher": "PANZ", "subject": "BMSV"},
+    {"day": "Mo", "periods": [8, 9],       "teacher": "WEMA", "subject": "MGT"},
+    {"day": "Mo", "periods": [10],         "teacher": "KRAU", "subject": "GME1"},
+
+    {"day": "Di", "periods": [1, 2, 3, 4], "teacher": "KRAU", "subject": "LA1"},
+    {"day": "Di", "periods": [6],          "teacher": "ZAEL", "subject": "AM"},
+    {"day": "Di", "periods": [7, 8, 9],    "teacher": "TAUD", "subject": "BMG2"},
+    {"day": "Di", "periods": [10],         "teacher": "ECKL", "subject": "GME1"},
+
+    {"day": "Mi", "periods": [1, 2],       "teacher": "GÖST", "subject": "PMS_3"},
+    {"day": "Mi", "periods": [3, 4],       "teacher": "GÖST", "subject": "PMS_4"},
+    {"day": "Mi", "periods": [5, 6],       "teacher": "WEMA", "subject": "BMSV"},
+
+    {"day": "Do", "periods": [1, 2],       "teacher": "MOBE", "subject": "D"},
+    {"day": "Do", "periods": [3],          "teacher": "WOJT", "subject": "GGP"},
+    {"day": "Do", "periods": [4],          "teacher": "WÜRZ", "subject": "MGIN"},
+    {"day": "Do", "periods": [5, 6],       "teacher": "FISC", "subject": "BESP"},
+
+    {"day": "Fr", "periods": [1],          "teacher": "GÖST", "subject": "MGIN"},
+    {"day": "Fr", "periods": [2],          "teacher": "GÖST", "subject": "MGIN"},
+    {"day": "Fr", "periods": [3, 4],       "teacher": "ZAEL", "subject": "AM"},
+    {"day": "Fr", "periods": [6],          "teacher": "ZACH", "subject": "GGP"},
+    {"day": "Fr", "periods": [7, 8],       "teacher": "STRA", "subject": "NW2"}
+  ]
+}

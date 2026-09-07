@@ -1,13 +1,12 @@
-# WebUntis → Stundenplan als PDF und Word
+# Stundenplan als PDF und Word
 
-Holt den Stundenplan über die WebUntis-JSON-RPC-API und erzeugt daraus ein
-druckfertiges Dokument im DIN-A4-Querformat – eine Seite, das normale
-Wochenraster.
+Erzeugt aus dem Stundenplan ein druckfertiges Dokument im DIN-A4-Querformat –
+eine Seite, das normale Wochenraster. Die Stunden kommen entweder aus der
+mitgelieferten Datei `plan.json` oder direkt aus WebUntis.
 
-Ausgegeben wird der **Standard-Stundenplan**: Vertretungen, Entfälle und
-Sondertermine der abgerufenen Woche werden auf die reguläre Stunde
-zurückgeführt. Im Plan steht also immer das Fach mit der Lehrkraft und dem
-Raum, wie sie normalerweise stattfinden.
+Ausgegeben wird immer der **Standard-Stundenplan**: Beim WebUntis-Abruf werden
+Vertretungen und Entfälle auf die reguläre Stunde zurückgeführt, im Plan steht
+also stets der Unterricht, wie er normalerweise stattfindet.
 
 ## Installation
 
@@ -16,6 +15,25 @@ pip install -r requirements.txt
 ```
 
 ## Verwendung
+
+Der eigene Plan liegt als `plan.json` bei – daraus direkt drucken:
+
+```bash
+python3 untis_export.py --file plan.json --format beides -o stundenplan
+```
+
+Ändert sich etwas, einfach `plan.json` bearbeiten und den Befehl erneut ausführen.
+Ein Eintrag sieht so aus:
+
+```json
+{"day": "Mo", "periods": [1, 2], "teacher": "NEUS", "subject": "E1"}
+```
+
+`day` ist `Mo`–`Fr`, `periods` sind die Stundennummern (mehrere = zusammenhängender
+Block), `room` kann zusätzlich angegeben werden. Die Zeiten stehen oben unter
+`periods`, die Zeilenreihenfolge in der Zelle unter `order`.
+
+### Direkt aus WebUntis
 
 ```bash
 python3 untis_export.py \
@@ -29,6 +47,7 @@ python3 untis_export.py \
 
 | Option | Bedeutung |
 |---|---|
+| `--file` | JSON-Datei mit dem Plan, statt WebUntis abzufragen |
 | `--server` | Host aus deiner WebUntis-URL, z. B. `mese.webuntis.com` |
 | `--school` | Schulname genau wie im WebUntis-Login |
 | `--user` / `--password` | deine WebUntis-Zugangsdaten |
@@ -51,34 +70,32 @@ python3 untis_export.py --format beides
 
 ## Darstellung
 
-Jede Zelle folgt der Untis-Zeilenfolge:
+Jede Zelle ist wie in der Untis-App beschriftet:
 
 ```
-M         Fach, fett (Kurzname; mit --names long "Mathematik")
-MUE       Lehrkraft
-A101      Raum
+NEUS      Lehrkraft, fett
+E1        Fach
 ```
 
-Kopfzeile mit den Wochentagen, linke Spalte mit Stundennummer und Uhrzeit,
-Zeilen abwechselnd hell hinterlegt. Leere Randstunden und unterrichtsfreie Tage
-fallen weg, damit der Ausdruck kompakt bleibt.
+Kopfzeile mit den Wochentagen, linke Spalte mit Uhrzeit und Stundennummer.
+Zusammenhängende Stunden desselben Unterrichts werden zu einem durchgehenden
+Block verbunden, genau wie in der App. Leere Randstunden und unterrichtsfreie
+Tage fallen weg, damit der Ausdruck kompakt bleibt.
+
+Die Zeilenreihenfolge in der Zelle steuert `order` in `plan.json`, standardmäßig
+`["teacher", "subject", "room"]`.
 
 ## Dateien
 
 | Datei | Zweck |
 |---|---|
-| `untis_export.py` | Kommandozeile: anmelden, holen, schreiben |
+| `plan.json` | der eigene Stundenplan als bearbeitbare Datei |
+| `untis_export.py` | Kommandozeile: laden bzw. abrufen und schreiben |
+| `plan_file.py` | liest `plan.json` ein |
 | `untis_client.py` | JSON-RPC-Client für WebUntis |
 | `timetable.py` | rechnet die Untis-Stunden in das Wochenraster um |
 | `render_pdf.py` | PDF-Ausgabe (ReportLab) |
 | `render_docx.py` | Word-Ausgabe (python-docx) |
-| `test_render.py` | erzeugt Beispieldateien ohne WebUntis-Zugang |
-
-Layout ohne Zugangsdaten ansehen:
-
-```bash
-python3 test_render.py demo     # schreibt demo.pdf und demo.docx
-```
 
 ## Hinweise
 
