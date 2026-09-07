@@ -1,108 +1,83 @@
-"""PDF-Ausgabe (A4 quer, eine Seite pro Woche)."""
+"""PDF-Ausgabe des Standard-Stundenplans (A4 quer, eine Seite)."""
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from timetable import STATE_COLORS, WEEKDAYS
+from timetable import WEEKDAYS
 from untis_client import hhmm
 
 HEADER_BG = colors.HexColor("#2b3a55")
+GRID_LINE = colors.HexColor("#b9c2d0")
+UNIT_BG = colors.HexColor("#eef1f6")
+STRIPE_BG = colors.HexColor("#f7f9fc")
 
-_H1 = ParagraphStyle("h1", fontName="Helvetica-Bold", fontSize=16, leading=19,
-                     textColor=colors.HexColor("#1a1a1a"))
-_H2 = ParagraphStyle("h2", fontName="Helvetica", fontSize=9.5, leading=12,
-                     textColor=colors.HexColor("#666666"))
+_TITLE = ParagraphStyle("title", fontName="Helvetica-Bold", fontSize=16, leading=19,
+                        textColor=colors.HexColor("#1a1a1a"))
+_SUBTITLE = ParagraphStyle("subtitle", fontName="Helvetica", fontSize=9.5, leading=12,
+                           textColor=colors.HexColor("#666666"))
+_HEAD = ParagraphStyle("head", fontName="Helvetica-Bold", fontSize=10, leading=12,
+                       alignment=1, textColor=colors.white)
 _UNIT = ParagraphStyle("unit", fontName="Helvetica", fontSize=8, leading=10, alignment=1)
+_SUBJECT = ParagraphStyle("subject", fontName="Helvetica-Bold", fontSize=9, leading=11,
+                          alignment=1, textColor=colors.HexColor("#1a1a1a"))
+_DETAIL = ParagraphStyle("detail", fontName="Helvetica", fontSize=7, leading=8.5,
+                         alignment=1, textColor=colors.HexColor("#555555"))
 
 
 def _escape(text):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _line_markup(segments, bold=False):
-    parts = []
-    for seg in segments:
-        t = _escape(seg.text)
-        if seg.struck:
-            t = f"<strike>{t}</strike>"
-        if bold:
-            t = f"<b>{t}</b>"
-        parts.append(t)
-    return " ".join(parts)
-
-
-def _cell_flowable(cells):
-    if not cells:
-        return ""
+def _cell(cells):
+    """Fach fett, darunter Lehrkraft und Raum - die Untis-Zeilenfolge."""
     out = []
-    for cell in cells:
-        color = STATE_COLORS[cell.state]["text"]
-        style = ParagraphStyle("c", fontName="Helvetica", fontSize=8.5, leading=10.5,
-                               alignment=1, textColor=colors.HexColor(color))
-        small = ParagraphStyle("cs", parent=style, fontSize=7)
-        lines = cell.lines
-        out.append(Paragraph(_line_markup(lines[0], bold=True), style))
+    for entry in cells:
+        lines = entry.lines
+        out.append(Paragraph(_escape(lines[0]), _SUBJECT))
         for line in lines[1:]:
-            out.append(Paragraph(_line_markup(line), small))
+            out.append(Paragraph(_escape(line), _DETAIL))
     return out
 
 
-def _week_table(units, dates, grid):
-    head = [""] + [f"{WEEKDAYS[d.weekday()]}<br/>"
-                   f"<font size=7 color='#c9d2e2'>{d.strftime('%d.%m.')}</font>" for d in dates]
-    head_style = ParagraphStyle("hd", fontName="Helvetica-Bold", fontSize=9.5, leading=11.5,
-                                alignment=1, textColor=colors.white)
-    data = [[Paragraph("Stunde", head_style)] + [Paragraph(h, head_style) for h in head[1:]]]
-
+def _table(units, days, grid):
+    head = [Paragraph("Stunde", _HEAD)] + [Paragraph(WEEKDAYS[d], _HEAD) for d in days]
+    data = [head]
     for unit in units:
         label = Paragraph(
             f"<b>{_escape(str(unit['name']))}</b><br/>"
-            f"<font size=6.5 color='#666666'>{hhmm(unit['startTime'])}<br/>{hhmm(unit['endTime'])}</font>",
-            _UNIT)
-        data.append([label] + [_cell_flowable(grid.get((d, unit["startTime"]), [])) for d in dates])
+            f"<font size=6.5 color='#666666'>{hhmm(unit['startTime'])}<br/>"
+            f"{hhmm(unit['endTime'])}</font>", _UNIT)
+        data.append([label] + [_cell(grid.get((d, unit["startTime"]), [])) for d in days])
 
     usable = landscape(A4)[0] - 24 * mm
     first = 20 * mm
-    col = (usable - first) / len(dates)
-    table = Table(data, colWidths=[first] + [col] * len(dates),
+    col = (usable - first) / len(days)
+    table = Table(data, colWidths=[first] + [col] * len(days),
                   rowHeights=[10 * mm] + [None] * len(units), repeatRows=1)
 
     style = [
         ("BACKGROUND", (0, 0), (-1, 0), HEADER_BG),
-        ("BACKGROUND", (0, 1), (0, -1), colors.HexColor("#eef1f6")),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b9c2d0")),
+        ("BACKGROUND", (0, 1), (0, -1), UNIT_BG),
+        ("GRID", (0, 0), (-1, -1), 0.5, GRID_LINE),
         ("BOX", (0, 0), (-1, -1), 1.1, HEADER_BG),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 1), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 3),
+        ("TOPPADDING", (0, 1), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 4),
     ]
-    for row, unit in enumerate(units, start=1):
-        for col_i, date in enumerate(dates, start=1):
-            cells = grid.get((date, unit["startTime"]), [])
-            if cells:
-                fill = STATE_COLORS[cells[0].state]["fill"]
-                if fill != "#ffffff":
-                    style.append(("BACKGROUND", (col_i, row), (col_i, row), colors.HexColor(fill)))
+    for row in range(2, len(data), 2):
+        style.append(("BACKGROUND", (1, row), (-1, row), STRIPE_BG))
     table.setStyle(TableStyle(style))
     return table
 
 
-def render(path, weeks, title, footer):
-    """weeks: Liste von (units, dates, grid)."""
+def render(path, units, days, grid, title, subtitle):
     doc = SimpleDocTemplate(path, pagesize=landscape(A4),
                             leftMargin=12 * mm, rightMargin=12 * mm,
                             topMargin=12 * mm, bottomMargin=12 * mm,
                             title=title, author="untis_export")
-    story = []
-    for i, (units, dates, grid) in enumerate(weeks):
-        if i:
-            story.append(PageBreak())
-        subtitle = (f"Woche {dates[0].strftime('%d.%m.%Y')} – {dates[-1].strftime('%d.%m.%Y')}"
-                    f"  ·  {footer}")
-        story += [Paragraph(_escape(title), _H1), Paragraph(subtitle, _H2), Spacer(1, 5 * mm),
-                  _week_table(units, dates, grid)]
-    doc.build(story)
+    doc.build([Paragraph(_escape(title), _TITLE), Paragraph(_escape(subtitle), _SUBTITLE),
+               Spacer(1, 5 * mm), _table(units, days, grid)])

@@ -1,28 +1,25 @@
-"""Word-Ausgabe (.docx, A4 quer, eine Seite pro Woche)."""
+"""Word-Ausgabe des Standard-Stundenplans (.docx, A4 quer)."""
 
 from docx import Document
 from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_ALIGN_VERTICAL
-from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 
-from timetable import STATE_COLORS, WEEKDAYS
+from timetable import WEEKDAYS
 from untis_client import hhmm
 
 HEADER_BG = "2B3A55"
 UNIT_BG = "EEF1F6"
-
-
-def _hex(value):
-    return value.lstrip("#").upper()
+STRIPE_BG = "F7F9FC"
 
 
 def _shade(cell, hex_color):
     shd = OxmlElement("w:shd")
     shd.set(qn("w:val"), "clear")
-    shd.set(qn("w:fill"), _hex(hex_color))
+    shd.set(qn("w:fill"), hex_color)
     cell._tc.get_or_add_tcPr().append(shd)
 
 
@@ -34,96 +31,67 @@ def _landscape(section):
 
 
 def _para(cell, first=True):
-    if first and cell.paragraphs:
-        p = cell.paragraphs[0]
-    else:
-        p = cell.add_paragraph()
+    p = cell.paragraphs[0] if first and cell.paragraphs else cell.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(0)
     p.paragraph_format.space_after = Pt(0)
     return p
 
 
-def _write_line(paragraph, segments, size, color, bold=False):
-    for i, seg in enumerate(segments):
-        run = paragraph.add_run(("" if i == 0 else " ") + seg.text)
-        run.font.size = Pt(size)
-        run.font.bold = bold
-        run.font.strike = seg.struck
-        run.font.color.rgb = RGBColor.from_string(_hex(color))
+def _run(paragraph, text, size, color, bold=False):
+    run = paragraph.add_run(text)
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    run.font.color.rgb = RGBColor.from_string(color)
+    return run
 
 
-def _fill_cell(doc_cell, cells):
+def _fill(doc_cell, cells, stripe):
     doc_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    if stripe:
+        _shade(doc_cell, STRIPE_BG)
     if not cells:
         _para(doc_cell)
         return
-    _shade(doc_cell, STATE_COLORS[cells[0].state]["fill"])
     first = True
     for entry in cells:
-        color = STATE_COLORS[entry.state]["text"]
         lines = entry.lines
-        p = _para(doc_cell, first)
-        _write_line(p, lines[0], 9, color, bold=True)
+        _run(_para(doc_cell, first), lines[0], 9.5, "1A1A1A", bold=True)
         first = False
         for line in lines[1:]:
-            _write_line(_para(doc_cell, False), line, 7.5, color)
+            _run(_para(doc_cell, False), line, 7.5, "555555")
 
 
-def _week_table(doc, units, dates, grid):
-    table = doc.add_table(rows=len(units) + 1, cols=len(dates) + 1)
+def render(path, units, days, grid, title, subtitle):
+    doc = Document()
+    _landscape(doc.sections[0])
+    doc.styles["Normal"].font.name = "Calibri"
+
+    heading = doc.add_paragraph()
+    _run(heading, title, 16, "1A1A1A", bold=True)
+    sub = doc.add_paragraph()
+    _run(sub, subtitle, 9.5, "666666")
+    sub.paragraph_format.space_after = Pt(10)
+
+    table = doc.add_table(rows=len(units) + 1, cols=len(days) + 1)
     table.style = "Table Grid"
 
-    head = table.rows[0]
-    for idx, text in enumerate(["Stunde"] + [WEEKDAYS[d.weekday()] for d in dates]):
-        cell = head.cells[idx]
+    for idx, text in enumerate(["Stunde"] + [WEEKDAYS[d] for d in days]):
+        cell = table.rows[0].cells[idx]
         _shade(cell, HEADER_BG)
         cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-        p = _para(cell)
-        run = p.add_run(text)
-        run.font.bold = True
-        run.font.size = Pt(10)
-        run.font.color.rgb = RGBColor.from_string("FFFFFF")
-        if idx:
-            sub = _para(cell, False).add_run(dates[idx - 1].strftime("%d.%m."))
-            sub.font.size = Pt(7)
-            sub.font.color.rgb = RGBColor.from_string("C9D2E2")
+        _run(_para(cell), text, 10, "FFFFFF", bold=True)
 
     for row_idx, unit in enumerate(units, start=1):
         row = table.rows[row_idx]
         label = row.cells[0]
         _shade(label, UNIT_BG)
         label.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-        run = _para(label).add_run(str(unit["name"]))
-        run.font.bold = True
-        run.font.size = Pt(9)
-        time = _para(label, False).add_run(f"{hhmm(unit['startTime'])}\n{hhmm(unit['endTime'])}")
-        time.font.size = Pt(6.5)
-        time.font.color.rgb = RGBColor.from_string("666666")
-        for col_idx, date in enumerate(dates, start=1):
-            _fill_cell(row.cells[col_idx], grid.get((date, unit["startTime"]), []))
-    return table
-
-
-def render(path, weeks, title, footer):
-    """weeks: Liste von (units, dates, grid)."""
-    doc = Document()
-    _landscape(doc.sections[0])
-    doc.styles["Normal"].font.name = "Calibri"
-
-    for i, (units, dates, grid) in enumerate(weeks):
-        if i:
-            doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
-        heading = doc.add_paragraph()
-        run = heading.add_run(title)
-        run.font.size = Pt(16)
-        run.font.bold = True
-        sub = doc.add_paragraph()
-        sub_run = sub.add_run(f"Woche {dates[0].strftime('%d.%m.%Y')} – "
-                              f"{dates[-1].strftime('%d.%m.%Y')}  ·  {footer}")
-        sub_run.font.size = Pt(9.5)
-        sub_run.font.color.rgb = RGBColor.from_string("666666")
-        sub.paragraph_format.space_after = Pt(10)
-        _week_table(doc, units, dates, grid)
+        _run(_para(label), str(unit["name"]), 9, "1A1A1A", bold=True)
+        _run(_para(label, False), f"{hhmm(unit['startTime'])}\n{hhmm(unit['endTime'])}",
+             6.5, "666666")
+        stripe = row_idx % 2 == 0
+        for col_idx, day in enumerate(days, start=1):
+            _fill(row.cells[col_idx], grid.get((day, unit["startTime"]), []), stripe)
 
     doc.save(path)

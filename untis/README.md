@@ -1,8 +1,13 @@
 # WebUntis → Stundenplan als PDF und Word
 
-Holt den Stundenplan direkt über die WebUntis-JSON-RPC-API und erzeugt daraus
-druckfertige Dateien im DIN-A4-Querformat – eine Seite pro Woche.
-Die Zellen sind genauso beschriftet wie im Untis-Raster.
+Holt den Stundenplan über die WebUntis-JSON-RPC-API und erzeugt daraus ein
+druckfertiges Dokument im DIN-A4-Querformat – eine Seite, das normale
+Wochenraster.
+
+Ausgegeben wird der **Standard-Stundenplan**: Vertretungen, Entfälle und
+Sondertermine der abgerufenen Woche werden auf die reguläre Stunde
+zurückgeführt. Im Plan steht also immer das Fach mit der Lehrkraft und dem
+Raum, wie sie normalerweise stattfinden.
 
 ## Installation
 
@@ -18,7 +23,6 @@ python3 untis_export.py \
   --school "Meine Schule" \
   --user max.mustermann \
   --password geheim \
-  --weeks 4 \
   --format beides \
   -o stundenplan
 ```
@@ -28,9 +32,8 @@ python3 untis_export.py \
 | `--server` | Host aus deiner WebUntis-URL, z. B. `mese.webuntis.com` |
 | `--school` | Schulname genau wie im WebUntis-Login |
 | `--user` / `--password` | deine WebUntis-Zugangsdaten |
-| `--week` | ein Datum in der ersten Woche (Standard: heute) |
-| `--weeks` | Anzahl Wochen, je eine Seite (Standard 1) |
-| `--days` | Wochentage pro Seite (Standard 5 = Mo–Fr) |
+| `--week` | Datum einer normalen Unterrichtswoche (Standard: aktuelle Woche) |
+| `--days` | Wochentage, Standard 5 (Mo–Fr) |
 | `--names` | `short` = Kurznamen wie im Untis-Raster (Standard), `long` = Langnamen |
 | `--format` | `pdf`, `word` oder `beides` |
 | `--class-id` | Klassenplan statt persönlichem Plan |
@@ -46,23 +49,19 @@ export UNTIS_USER=max.mustermann UNTIS_PASSWORD=geheim
 python3 untis_export.py --format beides
 ```
 
-## Darstellung wie in Untis
+## Darstellung
 
 Jede Zelle folgt der Untis-Zeilenfolge:
 
 ```
-Fach            (fett, Kurzname – z. B. "M")
-Lehrkraft       ("MUE")
-Raum            ("A101")
-Hinweis         (Vertretungstext, kursivierter Zusatz)
+M         Fach, fett (Kurzname; mit --names long "Mathematik")
+MUE       Lehrkraft
+A101      Raum
 ```
 
-* **Entfall** – graue Zelle, Text durchgestrichen, Hinweis „Entfall“
-* **Vertretung / Verlegung** – violette Zelle; der ersetzte Wert steht
-  durchgestrichen vor dem neuen (`~~MUE~~ SCH`, `~~A101~~ TH`), genau wie Untis es anzeigt
-* **Klausur** – rote Zelle
-* mehrere Stunden zur selben Zeit (geteilte Gruppen) stehen untereinander in derselben Zelle
-* leere Randstunden werden weggelassen, damit der Ausdruck kompakt bleibt
+Kopfzeile mit den Wochentagen, linke Spalte mit Stundennummer und Uhrzeit,
+Zeilen abwechselnd hell hinterlegt. Leere Randstunden und unterrichtsfreie Tage
+fallen weg, damit der Ausdruck kompakt bleibt.
 
 ## Dateien
 
@@ -70,7 +69,7 @@ Hinweis         (Vertretungstext, kursivierter Zusatz)
 |---|---|
 | `untis_export.py` | Kommandozeile: anmelden, holen, schreiben |
 | `untis_client.py` | JSON-RPC-Client für WebUntis |
-| `timetable.py` | rechnet Untis-Stunden in das Zellenraster um |
+| `timetable.py` | rechnet die Untis-Stunden in das Wochenraster um |
 | `render_pdf.py` | PDF-Ausgabe (ReportLab) |
 | `render_docx.py` | Word-Ausgabe (python-docx) |
 | `test_render.py` | erzeugt Beispieldateien ohne WebUntis-Zugang |
@@ -81,7 +80,9 @@ Layout ohne Zugangsdaten ansehen:
 python3 test_render.py demo     # schreibt demo.pdf und demo.docx
 ```
 
-## Hinweis
+## Hinweise
 
-Manche Schulen sperren den JSON-RPC-Zugang für Schüleraccounts. Meldet der Login
-`personId = 0`, hilft `--class-id`; die passende ID zeigt `--list-classes`.
+* Fällt die abgerufene Woche in die Ferien, liefert WebUntis keine Stunden.
+  Dann mit `--week` eine normale Unterrichtswoche angeben.
+* Manche Schulen sperren den JSON-RPC-Zugang für Schüleraccounts. Meldet der
+  Login `personId = 0`, hilft `--class-id`; die ID zeigt `--list-classes`.
